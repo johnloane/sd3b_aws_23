@@ -7,14 +7,14 @@ class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(4096))
     user_id = db.Column(db.String(4096))
-    auth_key = db.Column(db.String(4096))
+    token = db.Column(db.String(4096))
     login = db.Column(db.Integer)
     access_level = db.Column(db.Integer)
 
-    def __init__(self, name, user_id, authkey, login, access_level):
+    def __init__(self, name, user_id, token, login, access_level):
         self.name = name
         self.user_id = user_id
-        self.auth_key = authkey
+        self.token = token
         self.login = login
         self.access_level = access_level
 
@@ -51,16 +51,16 @@ def user_logout(user_id):
         db.session.commit()
 
 
-def add_auth_key(user_id, auth_key):
+def add_token(user_id, token):
     row = get_user_row_if_exists(user_id)
     if row is not False:
-        row.auth_key = auth_key
+        row.token = token
         db.session.commit()
 
-def get_auth_key(user_id):
+def get_token(user_id):
     row = get_user_row_if_exists(user_id)
     if row is not False:
-        return row.auth_key
+        return row.token
     else:
         print("User with id: " + user_id + " doesn't exist")
 
@@ -70,7 +70,7 @@ def view_all():
 
 def print_results(row):
     for n in range(0, len(row)):
-        print(f"{row[n].id} | {row[n].name} |{row[n].user_id} | {row[n].auth_key} | {row[n].login} | {row[n].access_level}")
+        print(f"{row[n].id} | {row[n].name} |{row[n].user_id} | {row[n].token} | {row[n].login} | {row[n].access_level}")
 
 
 def get_all_logged_in_users():
@@ -94,13 +94,18 @@ def get_all_logged_in_users():
 def add_user_permission(user_id, read, write):
     row = get_user_row_if_exists(user_id)
     if row is not False:
-        if read and write:
+        if read=="true" and write=="true":
+            print("Read is true and write is true")
             row.access_level = 2
-        elif read:
+        elif read=="true":
+            print("Read is true and write is false")
             row.access_level = 1
         else:
+            print("Read is false and write is false")
             row.access_level = 0
         db.session.commit()
+    else:
+        add_user_and_login("sensor", user_id) 
 
 def get_user_access(user_id):
     row = get_user_row_if_exists(user_id)

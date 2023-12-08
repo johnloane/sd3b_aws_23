@@ -4,12 +4,14 @@ let myChannel = "johns_sd3b_pi";
 
 let pubnub;
 
+sendEvent('get_token')
+
 const setupPubNub = () => {
     // Update this block with your publish/subscribe keys
     pubnub = new PubNub({
         publishKey : "pub-c-6ce775ac-3b15-47e0-937b-e5bd7cf6c79d",
         subscribeKey : "sub-c-6eb23377-44fd-4c6e-b456-974c422b6cc7",
-        userId: "115286914554441662160" // Get device name
+	uuid: "115286914554441662160"
     });
 
     // add listener
@@ -41,9 +43,9 @@ const setupPubNub = () => {
     pubnub.addListener(listener);
 
     // subscribe to a channel
-    pubnub.subscribe({
-        channels: [myChannel]
-    });
+	//pubnub.subscribe({
+	//	#channels: [myChannel]
+    //});
 };
 
 function publishUpdate(channel, message)
@@ -110,55 +112,64 @@ function handleClick(cb)
 
 function logout()
 {
-    console.log("Logging out and unsubscribing");
-    pubnub.unsubscribe({
-        channels : [myChannel]
-    })
-    location.replace("/logout");
+	console.log("Logging out and unsubscribing");
+	pubnub.unsubscribe({
+		channels: [myChannel]
+	})
+	location.replace("/logout");
 }
 
 function grantAccess(ab)
 {
-    let userId = ab.id.split("-")[2];
-    let readState = document.getElementById("read-user-"+userId).checked;
-    let writeState = document.getElementById("write-user-"+userId).checked;
-    console.log("grant-"+userId+"-"+readState+"-"+writeState);
-    sendEvent("grant-"+userId+"-"+readState+"-"+writeState);
+	let userId = ab.id.split("-")[2]
+	let readState = document.getElementById("read-user-"+userId).checked;
+	let writeState = document.getElementById("write-user-"+userId).checked;
+	console.log("grant-"+userId+"-"+readState+"-"+writeState);
+	sendEvent("grant-"+userId+"-"+readState+"-"+writeState);
+}
+
+function grantDeviceAccess(ab)
+{
+	let uuid = document.getElementById("sensoruuid").value;
+	let readState = document.getElementById("read-device").checked;	
+	let writeState = document.getElementById("write-device").checked;
+	console.log("grant-"+uuid+"-"+readState+"-"+writeState);
+	sendEvent("grant-"+uuid+"-"+readState+"-"+writeState);
 }
 
 function sendEvent(value)
 {
-    fetch(value,
-    {
-        method:"POST",
-    })
-    .then(response => response.json())
-    .then(responseJson => {
-	    console.log(responseJson);
-        if(responseJson.hasOwnProperty('token'))
-        {
-            pubnub.setToken(responseJson.token);
-            console.log(responseJson.token);
-            pubnub.setCipherKey(responseJson.cipher_key);
-            console.log(responseJson.cipher_key);
-            subscribe();
-        }
-    });
+	fetch(value,
+	{
+		method:"POST",
+	})
+	.then(response => response.json())
+	.then(responseJson => {
+		console.log(responseJson);
+		if(responseJson.hasOwnProperty('token'))
+		{
+			pubnub.setToken(responseJson.token)
+			console.log(responseJson.token)
+			//pubnub.setCipherKey(responseJson.cipher_key);
+			pubnub.setUUID(responseJson.uuid);
+			subscribe();
+		}
+	});
 }
 
 function subscribe()
 {
-    pubnub.subscribe({channels: [myChannel],},
-    function(status, response)
-    {
-        if(status.error)
-        {
-            console.log("Subscribe failed ", status)
-        }
-        else
-        {
-            console.log("Subscribe success", status)
-        }
-    }
-    );
+	pubnub.subscribe({channels:[myChannel]},
+	function(status, response)
+	{
+		if(status.error)
+		{
+			console.log("Subscribe failed ", status)
+		}
+		else
+		{
+			console.log("Subscribe success", status)
+		}
+	}
+	);
 }
