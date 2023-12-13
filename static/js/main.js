@@ -9,8 +9,8 @@ sendEvent('get_token')
 const setupPubNub = () => {
     // Update this block with your publish/subscribe keys
     pubnub = new PubNub({
-        publishKey : "your publish key",
-        subscribeKey : "your subscribe key",
+        publishKey : "Your pub key",
+        subscribeKey : "Your sub key",
 	uuid: "client"
     });
 

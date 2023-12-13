@@ -22,7 +22,7 @@ def grant_read_access(user_id):
     uuids = [
             UUID.id("uuid-d").get().update()
             ]
-    envelope = pubnub.grant_token().channels(channels).ttl(15).uuids(uuids).authorized_uuid(user_id).sync()
+    envelope = pubnub.grant_token().channels(channels).ttl(1).uuids(uuids).authorized_uuid(user_id).sync()
     return envelope.result.token
 
 
@@ -33,7 +33,7 @@ def grant_read_write_access(user_id):
     uuids = [
             UUID.id("uuid-d").get().update()
             ]
-    envelope = pubnub.grant_token().channels(channels).ttl(15).uuids(uuids).authorized_uuid(user_id).sync()
+    envelope = pubnub.grant_token().channels(channels).ttl(1).uuids(uuids).authorized_uuid(user_id).sync()
     return envelope.result.token
 
 def revoke_access(token):
@@ -45,7 +45,8 @@ def parse_token(token):
     print(token_details)
     read_access = token_details['resources']['channels']['johns_sd3b_pi']['read']
     write_access = token_details['resources']['channels']['johns_sd3b_pi']['write']
-    return token_details['timestamp'], token_details['ttl'], read_access, write_access
+    uuid = token_details['authorized_uuid']
+    return token_details['timestamp'], token_details['ttl'], uuid, read_access, write_access
 
 
 
