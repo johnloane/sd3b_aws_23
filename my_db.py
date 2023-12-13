@@ -105,7 +105,7 @@ def add_user_permission(user_id, read, write):
             row.access_level = 0
         db.session.commit()
     else:
-        add_user_and_login("sensor", user_id) 
+        add_user_and_login("device", user_id)
 
 def get_user_access(user_id):
     row = get_user_row_if_exists(user_id)

@@ -22,22 +22,22 @@
 		<h2> Logged in users </h2>
 		<ul>
 			{% for user in online_users["users"] %}
+			{% if user[0] != "sensor"%}
 			<li>
 				<span>{{user[0]}}</span>
 				<input type="checkbox" id="read-user-{{user[1]}}" {{user[2]}}> Read </input>
 				<input type="checkbox" id="write-user-{{user[1]}}"{{user[3]}}>Write </input>
 				<button id = "access-user-{{user[1]}}" onClick=grantAccess(this)>Apply</button>
 			</li>
+			{% endif %}
 			{% endfor %}
 		</ul>
+		<h2> Devices </h2>
+		<p><input type="text" id="deviceuuid" autofocus placeholder="Device UUID">
+		<input type="checkbox" id="read-device">Read
+		<input type="checkbox" id="write-device">Write
+		<button id="access-device" onClick=grantDeviceAccess(this)>Apply</button></p>
 		{% endif %}
-	</div>
-	<div>
-		<h2>Sensors</h2>
-		<input type="text" id ="sensoruuid" value="sensor uuid">UUID</input>
-		<input type="checkbox" id="read-device">Read </input>
-		<input type="checkbox" id="write-device">Write</input>
-		<button id = "access-device" onClick=grantDeviceAccess(this)>Apply</button>
 	</div>
 </body>
 </html>

@@ -10,17 +10,22 @@ import requests
 from pip._vendor import cachecontrol
 from . import my_db, pb 
 import time
+from .config import config
 
 db = my_db.db
 app = Flask(__name__)
 
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:Dkit1234!@localhost/sd3b_23'
+app.config['SQLALCHEMY_DATABASE_URI'] = config.get("sql_alchemy_uri")
 
 db.init_app(app)
 
+print(f"CIPHER_KEY {pb.cipher_key}")
 
-GOOGLE_CLIENT_ID = "817858895140-04ppifkt6d84b13k7gis5ao1ch3fp4bi.apps.googleusercontent.com"
-client_secrets_file = os.path.join(pathlib.Path(__file__).parent, "client_secret.json")
+web = config.get("web")
+GOOGLE_CLIENT_ID = web["client_id"]
+print(type(GOOGLE_CLIENT_ID))
+print(f"GOOGLE_CLIENT_ID {GOOGLE_CLIENT_ID}")
+client_secrets_file = os.path.join(pathlib.Path(__file__).parent, ".secrets.json")
 
 flow = Flow.from_client_secrets_file(
     client_secrets_file=client_secrets_file,
@@ -84,25 +89,24 @@ def protected_sensors():
 def grant_access(user_id, read, write):
     # This should only work for admins who are identfied by google_id
     print(f"Granting permission for {user_id}-{read}-{write}")
-    if session['google_id'] == "115286914554441662160":
+    if session['google_id'] == config.get("pubnub_uuid"):
         print("Adding user permission to db")
         my_db.add_user_permission(user_id, read, write)
         token = my_db.get_token(user_id)
         if token is not None:
-            timestamp, ttl = pb.parse_token(token)
-            current_time = time.time()
-            print(f"Timestamp {timestamp} Current time {current_time} TTL {ttl} ")
-            if (timestamp+900) - current_time > 0:
-                print("Revoking access to current key")
-                pb.revoke_access(token)
+           timestamp, ttl = pb.parse_token(token)
+           current_time = time.time()
+           if (timestamp+(ttl*60)) - current_time > 0:
+               print("Token is valid")
+           else:
+               print("Token is out of date")
+        #pb.revoke_access(token)
         if read == "true" and write == "true":
-            print("Granting read and write access")
             token = pb.grant_read_write_access(user_id)
             my_db.add_token(user_id, token)
             access_response={'token':token, 'uuid':user_id, 'cipher_key':pb.cipher_key}
             return json.dumps(access_response)
         elif read == "true":
-            print("Granting read access")
             token = pb.grant_read_access(user_id)
             my_db.add_token(user_id, token)
             access_response={'token':token, 'uuid':user_id, 'cipher_key':pb.cipher_key}
@@ -122,10 +126,14 @@ def get_token():
     token_response = {'token':token, 'uuid':user_id, 'cipher_key':pb.cipher_key}
     return json.dumps(token_response)
 
-@app.route('/get_sensor_token-<uuid>')
-def get_sensor_token(uuid):
+
+@app.route('/get_device_token-<uuid>')
+def get_device_token(uuid):
     token = my_db.get_token(uuid)
-    token_response = {'token':token}
+    if token is not None:
+        token_response = {'token':token}
+    else:
+        token_response = {'token':123}
     return json.dumps(token_response)
 
 @app.route("/logout")
