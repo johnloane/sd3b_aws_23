@@ -17,7 +17,7 @@ pubnub = PubNub(pn_config)
 
 def grant_read_access(user_id):
     channels = [
-            Channel.id("johns_sd3b_pi").read()
+            Channel.id(config.get("pubnub_channel")).read()
             ]
     uuids = [
             UUID.id("uuid-d").get().update()
@@ -28,7 +28,7 @@ def grant_read_access(user_id):
 
 def grant_read_write_access(user_id):
     channels = [
-            Channel.id("johns_sd3b_pi").read().write()
+            Channel.id(config.get("pubnub_channel")).read().write()
             ]
     uuids = [
             UUID.id("uuid-d").get().update()
@@ -43,10 +43,10 @@ def revoke_access(token):
 def parse_token(token):
     token_details = pubnub.parse_token(token)
     print(token_details)
-    read_access = token_details['resources']['channels']['johns_sd3b_pi']['read']
-    write_access = token_details['resources']['channels']['johns_sd3b_pi']['write']
+    read_access= token_details['resources']['channels']['johns_sd3b_pi']['read']
+    write_access= token_details['resources']['channels']['johns_sd3b_pi']['write']
     uuid = token_details['authorized_uuid']
-    return token_details['timestamp'], token_details['ttl'], uuid, read_access, write_access
 
+    return token_details['timestamp'], token_details['ttl'], uuid, read_access, write_access
 
 

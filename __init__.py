@@ -87,40 +87,55 @@ def protected_sensors():
 
 @app.route('/grant-<user_id>-<read>-<write>', methods=["POST"])
 def grant_access(user_id, read, write):
-    # This should only work for admins who are identfied by google_id
-    print(f"Granting permission for {user_id}-{read}-{write}")
-    print("Adding user permission to db")
-    my_db.add_user_permission(user_id, read, write)
-    token = my_db.get_token(user_id)
-    if token is not None:
-        timestamp, ttl, uuid, read, write = pb.parse_token(token)
-        current_time = time.time()
-        if (timestamp+(ttl*60)) - current_time > 0:
-            print("Token is valid")
-        else:
-            print("Token is out of date")
-        #pb.revoke_access(token)
-    if (read == "true" or read) and (write == "true" or write):
-        token = pb.grant_read_write_access(user_id)
-        my_db.add_token(user_id, token)
-        access_response={'token':token, 'uuid':user_id, 'cipher_key':pb.cipher_key}
+    if session['google_id'] == config.get('admin_google_id'):
+        print(f"Granting {user_id}-{read}-{write}")
+        my_db.add_user_permission(user_id, read, write)
+        token = my_db.get_token(user_id)
+        if token is not None:
+            timestamp, ttl, user_id, read, write = pb.parse_token(token)
+            current_time = time.time()
+            if (timestamp+900) - current_time > 0:
+                print("Token is still valid")
+                access_response={'token':token, 'cipher_key':pb.cipher_key, 'uuid':user_id}
+                return json.dumps(access_response)
+            else:
+                print("Token refresh needed")
+                if read and write:
+                    token = pb.grant_read_write_access(user_id)
+                    my_db.add_token(user_id, token)
+                    access_response={'token':token, 'cipher_key':pb.cipher_key, 'uuid':user_id}
+                    return json.dumps(access_response)
+                elif read == "true":
+                    token = pb.grant_read_access(user_id)
+                    my_db.add_token(user_id, token)
+                    access_response={'token':token, 'cipher_key':pb.cipher_key, 'uuid':user_id}
+                    return json.dumps(access_response)
+                else:
+                    access_response = {'token':123, 'uuid':user_id, 'cipher_key':pb.cipher_key}
+                    return json.dumps(access_response)
+    else:
+        print("Non admin attempting to grant privileges")
+        return json.dumps({"access":"denied"})
+
+
+def grant_device_access(uuid, read, write):
+    print(f"Granting {uuid}-{read}-{write}")
+    my_db.add_user_permission(uuid, read, write)
+    token = my_db.get_token(uuid)
+    timestamp, ttl, uuid, read, write = pb.parse_token(token)
+    if read and write:
+        token = pb.grant_read_write_access(uuid)
+        my_db.add_token(uuid, token)
+        access_response={'token':token, 'cipher_key':pb.cipher_key, 'uuid':uuid}
         return json.dumps(access_response)
-    elif read == "true":
+    elif read:
         token = pb.grant_read_access(user_id)
         my_db.add_token(user_id, token)
-        access_response={'token':token, 'uuid':user_id, 'cipher_key':pb.cipher_key}
+        access_response={'token':token, 'cipher_key':pb.cipher_key, 'uuid':user_id}
         return json.dumps(access_response)
     else:
-        access_response={'token':123, 'uuid':user_id, 'cipher_key':pb.cipher_key}
+        access_response = {'token':123, 'uuid':user_id, 'cipher_key':pb.cipher_key}
         return json.dumps(access_response)
-
-def get_or_refresh_token(token):
-    timestamp, ttl, uuid, read, write = pb.parse_token(token)
-    current_time = time.time()
-    if (timestamp+(ttl*60)) - current_time > 0:
-        return token
-    else:
-        return grant_access(uuid, read, write)
 
 
 @app.route('/get_token', methods=["POST"])
@@ -129,10 +144,20 @@ def get_token():
     print(f"{session['name']} with {session['google_id']} reqesting token")
     token = my_db.get_token(session['google_id'])
     if token is not None:
-        token = get_or_refresh_token(token)
+        token_response={'token':token, 'uuid':user_id, 'cipher_key':pb.cipher_key}
     else:
-        token = {'token':123}
+        token_response = {'token':123, 'uuid':user_id, 'cipher_key':pb.cipher_key}
     return json.dumps(token)
+
+
+def get_or_refresh_token(token):
+    timestamp, ttl, uuid, read, write = pb.parse_token(token)
+    current_time = time.time()
+    if (timestamp+(ttl*60)) - current_time > 0:
+        return token
+    else:
+        # The token has expired
+        return grant_device_access(uuid, read, write)
 
 
 @app.route('/get_device_token-<uuid>')
@@ -140,9 +165,12 @@ def get_device_token(uuid):
     token = my_db.get_token(uuid)
     if token is not None:
         token = get_or_refresh_token(token)
+        token_response={'token':token}
     else:
-        token = {'token':123}
+        token_response = {'token':123}
     return json.dumps(token)
+
+
 
 @app.route("/logout")
 def logout():
