@@ -22,7 +22,7 @@ def grant_read_access(user_id):
     uuids = [
             UUID.id("uuid-d").get().update()
             ]
-    envelope = pubnub.grant_token().channels(channels).ttl(1).uuids(uuids).authorized_uuid(user_id).sync()
+    envelope = pubnub.grant_token().channels(channels).ttl(15).uuids(uuids).authorized_uuid(user_id).sync()
     return envelope.result.token
 
 
@@ -33,7 +33,7 @@ def grant_read_write_access(user_id):
     uuids = [
             UUID.id("uuid-d").get().update()
             ]
-    envelope = pubnub.grant_token().channels(channels).ttl(1).uuids(uuids).authorized_uuid(user_id).sync()
+    envelope = pubnub.grant_token().channels(channels).ttl(15).uuids(uuids).authorized_uuid(user_id).sync()
     return envelope.result.token
 
 def revoke_access(token):
