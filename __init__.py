@@ -87,8 +87,28 @@ def protected_sensors():
 
 @app.route('/grant-<user_id>-<read>-<write>', methods=["POST"])
 def grant_access(user_id, read, write):
-    if session['google_id'] == config.get('admin_google_id'):
-        print(f"Granting {user_id}-{read}-{write}")
+    if session.get('google_id'):
+        if session['google_id'] == config.get('admin_google_id'):
+            print(f"Admin Granting {user_id}-{read}-{write}")
+            my_db.add_user_permission(user_id, read, write)
+            if read=="true" and write=="true":
+                token = pb.grant_read_write_access(user_id)
+                my_db.add_token(user_id, token)
+                access_response={'token':token, 'cipher_key':pb.cipher_key, 'uuid':user_id}
+                return json.dumps(access_response)
+            elif read == "true":
+                token = pb.grant_read_access(user_id)
+                my_db.add_token(user_id, token)
+                access_response={'token':token, 'cipher_key':pb.cipher_key, 'uuid':user_id}
+                return json.dumps(access_response)
+            else:
+                access_response = {'token':123, 'uuid':user_id, 'cipher_key':pb.cipher_key}
+                return json.dumps(access_response)
+        else:
+            print("Non admin attempting to grant privileges")
+            return json.dumps({"access":"denied"})
+    else:
+        print(f"Non admin Granting {user_id}-{read}-{write}")
         my_db.add_user_permission(user_id, read, write)
         token = my_db.get_token(user_id)
         if token is not None:
@@ -105,7 +125,7 @@ def grant_access(user_id, read, write):
                     my_db.add_token(user_id, token)
                     access_response={'token':token, 'cipher_key':pb.cipher_key, 'uuid':user_id}
                     return json.dumps(access_response)
-                elif read == "true":
+                elif read:
                     token = pb.grant_read_access(user_id)
                     my_db.add_token(user_id, token)
                     access_response={'token':token, 'cipher_key':pb.cipher_key, 'uuid':user_id}
@@ -113,29 +133,47 @@ def grant_access(user_id, read, write):
                 else:
                     access_response = {'token':123, 'uuid':user_id, 'cipher_key':pb.cipher_key}
                     return json.dumps(access_response)
-    else:
-        print("Non admin attempting to grant privileges")
-        return json.dumps({"access":"denied"})
 
 
 def grant_device_access(uuid, read, write):
-    print(f"Granting {uuid}-{read}-{write}")
-    my_db.add_user_permission(uuid, read, write)
-    token = my_db.get_token(uuid)
-    timestamp, ttl, uuid, read, write = pb.parse_token(token)
-    if read and write:
-        token = pb.grant_read_write_access(uuid)
-        my_db.add_token(uuid, token)
-        access_response={'token':token, 'cipher_key':pb.cipher_key, 'uuid':uuid}
-        return json.dumps(access_response)
-    elif read:
-        token = pb.grant_read_access(user_id)
-        my_db.add_token(user_id, token)
-        access_response={'token':token, 'cipher_key':pb.cipher_key, 'uuid':user_id}
-        return json.dumps(access_response)
+    if session.get('google_id'):
+        if session['google_id'] == config.get('admin_google_id'):
+            print(f"Admin Granting {user_id}-{read}-{write}")
+            my_db.add_user_permission(uuid, read, write)
+            if read == "true" and write == "true":
+                token = pb.grant_read_write_access(uuid)
+                my_db.add_token(uuid, token)
+                access_response={'token':token, 'cipher_key':pb.cipher_key, 'uuid':uuid}
+                return json.dumps(access_response)
+            elif read == "true":
+                token = pb.grant_read_access(user_id)
+                my_db.add_token(user_id, token)
+                access_response={'token':token, 'cipher_key':pb.cipher_key, 'uuid':user_id}
+                return json.dumps(access_response)
+            else:
+                access_response = {'token':123, 'uuid':user_id, 'cipher_key':pb.cipher_key}
+                return json.dumps(access_response)
+        else:
+            print("Non admin attempting to grant privileges")
+            return json.dumps({"access":"denied"})
     else:
-        access_response = {'token':123, 'uuid':user_id, 'cipher_key':pb.cipher_key}
-        return json.dumps(access_response)
+        print(f"Non-admin Granting {uuid}-{read}-{write}")
+        my_db.add_user_permission(uuid, read, write)
+        token = my_db.get_token(uuid)
+        timestamp, ttl, uuid, read, write = pb.parse_token(token)
+        if read and write:
+            token = pb.grant_read_write_access(uuid)
+            my_db.add_token(uuid, token)
+            access_response={'token':token, 'cipher_key':pb.cipher_key, 'uuid':uuid}
+            return json.dumps(access_response)
+        elif read:
+            token = pb.grant_read_access(user_id)
+            my_db.add_token(user_id, token)
+            access_response={'token':token, 'cipher_key':pb.cipher_key, 'uuid':user_id}
+            return json.dumps(access_response)
+        else:
+            access_response = {'token':123, 'uuid':user_id, 'cipher_key':pb.cipher_key}
+            return json.dumps(access_response)
 
 
 @app.route('/get_token', methods=["POST"])
